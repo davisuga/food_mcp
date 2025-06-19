@@ -60,7 +60,7 @@ initializeSearch();
 // Add search tool
 server.addTool({
   name: "searchFoods",
-  description: "Search for foods in the TACO database by name or category",
+  description: "Search for foods in the TACO database by name or category. All food names and categories must be searched in Brazilian Portuguese, as in the original TACO database. Example: 'arroz integral', 'cereais', 'frango grelhado', etc.",
   parameters: z.object({
     query: z
       .string()
@@ -183,7 +183,7 @@ server.addTool({
 // Tool: Advanced search with nutrient ranges and sorting
 server.addTool({
   name: "advancedFoodSearch",
-  description: "Search foods with optional query, nutrient ranges, and sorting.",
+  description: "Search foods with optional query, nutrient ranges, and sorting. All food names and categories must be searched in Brazilian Portuguese, as in the original TACO database. Example: 'arroz integral', 'cereais', 'frango grelhado', etc.",
   parameters: z.object({
     query: z.string().optional().describe("Search terms (optional)."),
     min_energy_kcal: z.number().optional().describe("Minimum calories."),
@@ -243,7 +243,7 @@ server.addTool({
 // Tool: Batch search
 server.addTool({
   name: "batchFoodSearch",
-  description: "Perform multiple food searches in a single call. Each query can be a string or an object with advanced search parameters.",
+  description: "Perform multiple food searches in a single call. Each query can be a string or an object with advanced search parameters. All food names and categories must be searched in Brazilian Portuguese, as in the original TACO database. Example: 'arroz integral', 'cereais', 'frango grelhado', etc.",
   parameters: z.object({
     queries: z.array(z.union([
       z.string(),
