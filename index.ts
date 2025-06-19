@@ -267,8 +267,8 @@ server.addTool({
   }),
   execute: async ({ queries }) => {
     const tacoData = loadTacoData();
-    // Helper to run a single search
-    const runSearch = (q: any) => {
+    // Helper for batchFoodSearch to run a single search
+    function runBatchSearchQuery(q: string | Record<string, unknown>, tacoData: FoodItem[]): string {
       if (typeof q === "string") {
         // Simple search by description/category
         const results = tacoData.filter(item =>
@@ -280,13 +280,29 @@ server.addTool({
       } else if (typeof q === "object" && q !== null) {
         // Advanced search (reuse logic from advancedFoodSearch)
         let results = tacoData;
-        if (q.query) {
+        const adv = q as {
+          query?: string;
+          min_energy_kcal?: number;
+          max_energy_kcal?: number;
+          min_protein_g?: number;
+          max_protein_g?: number;
+          min_carbohydrate_g?: number;
+          max_carbohydrate_g?: number;
+          min_lipid_g?: number;
+          max_lipid_g?: number;
+          min_fiber_g?: number;
+          max_fiber_g?: number;
+          sort_by?: "energy_kcal"|"protein_g"|"carbohydrate_g"|"lipid_g"|"fiber_g";
+          sort_order?: "asc"|"desc";
+          limit?: number;
+        };
+        if (adv.query) {
           results = results.filter(item =>
-            item.description.toLowerCase().includes(q.query.toLowerCase()) ||
-            item.category.toLowerCase().includes(q.query.toLowerCase())
+            item.description.toLowerCase().includes(adv.query!.toLowerCase()) ||
+            item.category.toLowerCase().includes(adv.query!.toLowerCase())
           );
         }
-        const nutrientFilters = [
+        const nutrientFilters: [keyof FoodItem, keyof typeof adv, keyof typeof adv][] = [
           ["energy_kcal", "min_energy_kcal", "max_energy_kcal"],
           ["protein_g", "min_protein_g", "max_protein_g"],
           ["carbohydrate_g", "min_carbohydrate_g", "max_carbohydrate_g"],
@@ -294,27 +310,27 @@ server.addTool({
           ["fiber_g", "min_fiber_g", "max_fiber_g"],
         ];
         for (const [nutrient, minKey, maxKey] of nutrientFilters) {
-          const min = q[minKey as string];
-          const max = q[maxKey as string];
-          if (min !== undefined) results = results.filter(item => item[nutrient as string] >= min);
-          if (max !== undefined) results = results.filter(item => item[nutrient as string] <= max);
+          const min = adv[minKey];
+          const max = adv[maxKey];
+          if (min !== undefined) results = results.filter(item => (item[nutrient] ?? -Infinity) >= min);
+          if (max !== undefined) results = results.filter(item => (item[nutrient] ?? Infinity) <= max);
         }
-        if (q.sort_by) {
+        if (adv.sort_by) {
           results = results.sort((a, b) => {
-            const valA = a[q.sort_by];
-            const valB = b[q.sort_by];
-            if (q.sort_order === "asc") return valA - valB;
-            return valB - valA;
+            const valA = a[adv.sort_by!];
+            const valB = b[adv.sort_by!];
+            if (adv.sort_order === "asc") return (valA ?? 0) - (valB ?? 0);
+            return (valB ?? 0) - (valA ?? 0);
           });
         }
-        results = results.slice(0, q.limit ?? 10);
+        results = results.slice(0, adv.limit ?? 10);
         if (!results.length) return `No foods found for query: ${JSON.stringify(q)}`;
         return results.map(f => formatFoodItem(f)).join("\n\n");
       }
       return "Invalid query format.";
     };
     // Run all queries
-    return queries.map((q, i) => `Query ${i + 1}:\n${runSearch(q)}`).join("\n\n");
+    return queries.map((q, i) => `Query ${i + 1}:\n${runBatchSearchQuery(q, tacoData)}`).join("\n\n");
   },
 });
 
